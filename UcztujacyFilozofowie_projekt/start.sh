@@ -1,0 +1,2 @@
+g++ main.cpp -o filo -lncurses
+./filo $1
