@@ -1,0 +1,8 @@
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/P5.txt 5
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/t1/P.txt 7
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/P6.txt 18
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/P7.txt 18
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/t1/P2.txt 18
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/t1/P3.txt 18
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/t1/P4.txt 18
+/home/elrior/Desktop/projects/SO/LAB3/drzewo/t1/P8.txt 18
