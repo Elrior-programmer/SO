@@ -1,5 +1,8 @@
 #include <ncurses.h>
 #include <cstdlib>
+#include <thread>
+#include <vector>
+
 class Philosopher;
 
 enum Frok_state {
@@ -14,25 +17,33 @@ enum Philosopher_status {
 	EATING
 };
 
-struct Fork
+class Fork
 {
 	int id;
-	Frok_state used;
+	Frok_state status;
 	Philosopher* user;
 	public:
-		Fork() : id(0), used(LAYING), user(nullptr) {}
-		Fork(int id_) : id(id_), used(LAYING), user(nullptr) {}
-		Fork(int id_, Frok_state is_being_used, Philosopher* user_) : id(id_), used(is_being_used), user(user_) {}
+		Fork() : id(0), status(LAYING), user(nullptr) {}
+		Fork(int id_) : id(id_), status(LAYING), user(nullptr) {}
+		Fork(int id_, Frok_state is_being_used, Philosopher* user_) : id(id_), status(is_being_used), user(user_) {}
 	int get_id() const {
 		return this->id;
 	}
+	Frok_state get_status() const {
+		return this->status;
+	}
+	Philosopher* get_user() const {
+		return this->user;
+	}
+
 };
 
-struct Philosopher {
+class Philosopher {
 	int id;
 	Fork* left_fork;
 	Fork* right_fork;
 	Philosopher_status status;
+	public:
 		Philosopher(int id_=0) {
 			this->id = id_;
 			this->left_fork = nullptr;
@@ -44,35 +55,47 @@ struct Philosopher {
 	int get_id() const {
 		return this->id;
 	}
+	Philosopher_status get_status() const {
+		return this->status;
+	}
+	Fork* get_left_fork() const {
+		return this->left_fork;
+	}
+	Fork* get_right_fork() const {
+		return this->right_fork;
+	}
 };
 
-void visualization(Philosopher philosopher_table[], int amount_of_philosophers) {
-	initscr();			/* Start curses mode 		  */
-	for(int i = 0 ; i < amount_of_philosophers ; i++) {
-		printw(" | Filozof %d",philosopher_table[i].get_id());
-		printw(" |");
-	}
-	printw("\n ");
-	for(int i = 0 ; i < amount_of_philosophers ; i++) {
-		if (philosopher_table[i].status == 0)
-		{
-			printw("| THINKING  | ");
+void visualization(std::vector<Philosopher>& philosophers, std::vector<Fork>& forks) {
+    initscr(); 
+    while (true) {
+        clear();
+        for (auto& p : philosophers) {
+            printw("Filozof %d | Status: ", p.get_id());
+            switch (p.get_status()) {
+                case THINKING: printw("THINKING"); break;
+                case WAITING:  printw("WAITING"); break;
+                case EATING:   printw("EATING"); break;
+            }
+            if(p.get_left_fork()->get_status() != LAYING && p.get_left_fork()->get_user()->get_id() == p.get_id())
+			{
+				printw("L%d ",p.get_left_fork()->get_id());
+			}
+			else if(p.get_right_fork()->get_status() != LAYING && p.get_right_fork()->get_user()->get_id() == p.get_id()) {
+				printw("R%d ",p.get_right_fork()->get_id());
+			}
+            printw("\n");
+        }
+		printw("\n TABLE:\n | ");
+		for (auto& f : forks) {
+			if(f.get_status() == LAYING)
+				printw("F%d | ",f.get_id());
 		}
-		else if (philosopher_table[i].status == 1) {
-			printw("|  WATING   | ");
-		}
-		else {
-			printw("|  EATING   | ");
-		}
-		
-	}
-	printw("\n");
-	for(int i = 0 ; i < amount_of_philosophers ; i++) {
-		printw(" | R_F%d L_F%d |",philosopher_table[i].right_fork->get_id(),philosopher_table[i].left_fork->get_id());
-	}
-	refresh();			/* Print it on to the real screen */
-	getch();			/* Wait for user input */
-	endwin();			/* End curses mode		  */
+		printw("\n");
+        refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    }
+    endwin(); 
 }
 
 int main(int argc, char* argv[])
@@ -84,18 +107,20 @@ int main(int argc, char* argv[])
 	else {
 		
 		int amount_of_philosophers = std::atoi(argv[1]);
-		Philosopher philosopher_table[amount_of_philosophers];
-		Fork fork_table[amount_of_philosophers];
+		std::vector <Philosopher> philosopher_table;
+		std::vector <Fork> fork_table;
 		for (int i = 0 ; i < amount_of_philosophers ; i++)
 		{
-			fork_table[i] = Fork(i,LAYING,nullptr);
+				fork_table.emplace_back(i,LAYING,nullptr);
 		}
-		philosopher_table[0] = Philosopher(0,&fork_table[0],&fork_table[amount_of_philosophers-1], EATING);
+		philosopher_table.push_back(Philosopher(0,&fork_table[0],&fork_table[amount_of_philosophers-1], EATING));
 		for(int i = 1 ; i < amount_of_philosophers ; i++) {
-			philosopher_table[i] = Philosopher(i, &fork_table[i],&fork_table[i+1],WAITING);
+				philosopher_table.push_back(Philosopher(i, &fork_table[i],&fork_table[i-1],WAITING));
 		}
+		std::thread vis_thread(visualization, std::ref(philosopher_table), std::ref(fork_table));
 		
-		visualization(philosopher_table,amount_of_philosophers);
+
+		vis_thread.join();
 		return 0;
 	}
 }

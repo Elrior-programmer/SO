@@ -16,8 +16,4 @@ RUN apt-get update && \
 
     WORKDIR /workspace
 
-    COPY main.cpp .
-
-    RUN g++ main.cpp -o filozofowie
-
     CMD ["/bin/bash"]
