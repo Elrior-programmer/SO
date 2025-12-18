@@ -1,10 +1,15 @@
 #include <ncurses.h>
+#include <iostream>
 #include <cstdlib>
 #include <thread>
 #include <vector>
 #include <ctime>
 #include <mutex>
+#include <condition_variable>
+#define wait_time_max 7000
+#define wait_time_min 2000 
 class Philosopher;
+
 
 enum Holding {
 	NO,
@@ -28,7 +33,8 @@ class Fork
 	int id;
 	Frok_state status;
 	Philosopher* user;
-	std::mutex mtx;
+	std::mutex* mtx = new std::mutex;
+	std::condition_variable cv;
 	public:
 		Fork() : id(0), status(LAYING), user(nullptr) {}
 		Fork(int id_) : id(id_), status(LAYING), user(nullptr) {}
@@ -42,8 +48,12 @@ class Fork
 	Philosopher* get_user() const {
 		return this->user;
 	}
+	std::mutex* get_mutex() const {
+		return this->mtx;
+	}
+
+
 	Holding pick_up(Philosopher* wanna_be_user) { // return 1 for succesful pick up else 0
-		std::lock_guard<std::mutex> lock(mtx);
 		if(this->status==LAYING && this->user == nullptr) {
 			this->status=HOLD;
 			this->user=wanna_be_user;
@@ -54,7 +64,6 @@ class Fork
 	}
 
 	Holding put_down(Philosopher* wanna_be_user) {
-		std::lock_guard<std::mutex> lock(mtx);
 		if(this->status != LAYING && this->user == wanna_be_user) {
 			this->status = LAYING;
 			this->user = nullptr;
@@ -65,6 +74,10 @@ class Fork
 		}
 		else
 			return ERROR; // tho it only goes if you wanted to put_down not your own fork
+	}
+
+	~Fork() {
+		delete mtx;
 	}
 };
 
@@ -104,8 +117,6 @@ class Philosopher {
 
 	void Think(int wait_time) {
 		this->status = THINKING;
-		this->holding_left = this->left_fork->put_down(this);
-		this->holding_right = this->right_fork->put_down(this); 
 		std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
 	}
 
@@ -114,25 +125,21 @@ class Philosopher {
 		std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
 		this->holding_left = this->left_fork->put_down(this);
 		this->holding_right = this->right_fork->put_down(this); 
-		this->status= WAITING;
+		this->status= THINKING;
 	}
 
 	void Do() {
-		int wait_time = 5000;
+		int wait_time = wait_time_min + std::rand() % (wait_time_max - wait_time_min + 1 );
 		while(1) {
-			srand(time(nullptr));
-			int think_or_eat = rand()%2; // if 1 eat, 0 - think
+			int think_or_eat = std::rand()%2; // if 1 eat, 0 - think
 			if (!think_or_eat) {
 				this->Think(wait_time);
 			}
 			else {
-				do {
-					this->status=WAITING;
-					std::this_thread::sleep_for(std::chrono::milliseconds(300));
-					this->holding_left = this->get_left_fork()->pick_up(this);
-					this->holding_right = this->right_fork->pick_up(this);
-				}
-				while(this->holding_left != YES || this->holding_right != YES);
+				std::mutex* mtx1 = this->get_left_fork()->get_mutex();
+				std::mutex* mtx2 = this->get_right_fork()->get_mutex();
+				std::unique_lock<std::mutex> left_fork_lock(*mtx1);
+				std::unique_lock<std::mutex> right_fork_lock(*mtx2);
 				this->Eat(wait_time);
 			}
 		}
@@ -180,7 +187,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	else {
-		
+		srand(time(nullptr));
 		int amount_of_philosophers = std::atoi(argv[1]);
 		std::vector <Philosopher> philosopher_table;
 		std::vector<std::unique_ptr<Fork>> fork_table;
