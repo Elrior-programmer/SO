@@ -1,32 +1,23 @@
-awk '{
-    # Rozdzielenie pierwszego pola (czas) na składowe
-    split($1, time, "-")
-    ss = time[1]
-    mm = time[2]
-    hh = time[3]
-    
-    # Konwersja do formatu 12-godzinnego z am/pm
-    if (hh == 0) {
-        hh_12 = 12
-        period = "am"
-    } else if (hh < 12) {
-        hh_12 = hh
-        period = "am"
-    } else if (hh == 12) {
-        hh_12 = 12
-        period = "pm"
+awk -F'#' '{
+  if (match($1, /([0-9]{2})-([0-9]{2})-([0-9]{2})/, a)) {
+
+    sec  = a[1]
+    min  = a[2]
+    hour = a[3]
+
+     if (hour > 12) {
+      hour -= 12
+      suffix = "pm"
     } else {
-        hh_12 = hh - 12
-        period = "pm"
+      suffix = "am"
     }
-    
-    # Usunięcie wiodącego zera z godziny
-    hh_12 = hh_12 + 0
-    
-    # Wypisanie przekonwertowanego czasu i reszty pól
-    printf "%d:%s %s", hh_12, mm, period
-    for (i = 2; i <= NF; i++) {
-        printf " %s", $i
-    }
-    printf "\n"
-}' P.txt
+
+    min = sprintf("%02d", min)
+    if( length($1) == 8 && hour >= 0 && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59)
+      {
+      sub(a[0], hour ":" min suffix)
+      echo "here"
+      }
+  }
+  print
+}' "$1"
