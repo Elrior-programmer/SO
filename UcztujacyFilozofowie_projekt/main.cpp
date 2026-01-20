@@ -17,7 +17,7 @@ enum Holding {
 	ERROR
 };
 
-enum Frok_state {
+enum Fork_state {
 	LAYING,
 	HOLD
 };
@@ -31,18 +31,18 @@ enum Philosopher_status {
 class Fork
 {
 	int id;
-	Frok_state status;
+	Fork_state status;
 	Philosopher* user;
 	std::mutex* mtx = new std::mutex;
 	std::condition_variable cv;
 	public:
 		Fork() : id(0), status(LAYING), user(nullptr) {}
 		Fork(int id_) : id(id_), status(LAYING), user(nullptr) {}
-		Fork(int id_, Frok_state is_being_used, Philosopher* user_) : id(id_), status(is_being_used), user(user_) {}
+		Fork(int id_, Fork_state is_being_used, Philosopher* user_) : id(id_), status(is_being_used), user(user_) {}
 	int get_id() const {
 		return this->id;
 	}
-	Frok_state get_status() const {
+	Fork_state get_status() const {
 		return this->status;
 	}
 	Philosopher* get_user() const {
